@@ -327,25 +327,36 @@ RCT_EXPORT_METHOD(requestPermissions:(NSDictionary *)permissions
   // Add a listener to make sure that startObserving has been called
   [self addListener:@"remoteNotificationsRegistered"];
   _requestPermissionsResolveBlock = resolve;
-  
-  UIUserNotificationType types = UIUserNotificationTypeNone;
+
+  UNAuthorizationOptions options = nil;
   if (permissions) {
     if ([RCTConvert BOOL:permissions[@"alert"]]) {
-      types |= UIUserNotificationTypeAlert;
+      options += UNAuthorizationOptionAlert;
     }
     if ([RCTConvert BOOL:permissions[@"badge"]]) {
-      types |= UIUserNotificationTypeBadge;
+      options += UNAuthorizationOptionBadge;
     }
     if ([RCTConvert BOOL:permissions[@"sound"]]) {
-      types |= UIUserNotificationTypeSound;
+      options += UNAuthorizationOptionSound;
+    }
+    if ([RCTConvert BOOL:permissions[@"provisional"]]) {
+      options += UNAuthorizationOptionProvisional;
     }
   } else {
-    types = UIUserNotificationTypeAlert | UIUserNotificationTypeBadge | UIUserNotificationTypeSound;
+    options = UNAuthorizationOptionAlert | UNAuthorizationOptionBadge | UNAuthorizationOptionSound;
   }
-  
-  UIUserNotificationSettings *notificationSettings =
-  [UIUserNotificationSettings settingsForTypes:types categories:nil];
-  [RCTSharedApplication() registerUserNotificationSettings:notificationSettings];
+
+  UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+  center.delegate = [[UIApplication sharedApplication] delegate];
+  [center requestAuthorizationWithOptions: options
+    completionHandler:^(BOOL granted, NSError * _Nullable error) {
+      if (granted) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+          [RCTSharedApplication() registerForRemoteNotifications];
+        });
+      }
+    }
+  ];
 }
 
 RCT_EXPORT_METHOD(abandonPermissions)

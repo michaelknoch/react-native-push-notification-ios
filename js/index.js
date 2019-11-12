@@ -271,6 +271,7 @@ class PushNotificationIOS {
         alert: !!permissions.alert,
         badge: !!permissions.badge,
         sound: !!permissions.sound,
+        provisional: !!permissions.provisional,
       };
     } else {
       requestedPermissions = {
